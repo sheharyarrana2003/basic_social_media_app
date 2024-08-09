@@ -12,32 +12,55 @@ class LogInPage extends StatefulWidget {
 }
 
 class _LogInPageState extends State<LogInPage> {
-  final emailControler = TextEditingController();
-  final passControler = TextEditingController();
+  final emailController = TextEditingController();
+  final passController = TextEditingController();
+  late BuildContext dialogContext;
 
   void logIn() async {
-    showDialog(
-        context: context,
-        builder: (context) => Center(
-              child: CircularProgressIndicator(),
-            ));
+    if (emailController.text.trim().isEmpty ||
+        passController.text.trim().isEmpty) {
+      showErrorMessage('Email and Password cannot be empty');
+      return;
+    }
+
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: emailControler.text.trim(),
-          password: passControler.text.trim());
-      if (context.mounted) Navigator.pop(context);
+          email: emailController.text.trim(),
+          password: passController.text.trim());
+
+      if (context.mounted) {
+        Navigator.pop(dialogContext);
+      }
     } on FirebaseAuthException catch (e) {
-      Navigator.pop(context);
-      showMessegae(e.code);
+      Navigator.pop(dialogContext);
+      showErrorMessage(e.message ?? 'An unknown error occurred');
     }
   }
 
-  void showMessegae(String message) async {
+  void showErrorMessage(String message) {
     showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-              title: Text(message),
-            ));
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[100],
+        title: Text(
+          'Error',
+          style: TextStyle(color: Colors.red[800]),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: Colors.red[600]),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'OK',
+              style: TextStyle(color: Colors.red[800]),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -52,49 +75,52 @@ class _LogInPageState extends State<LogInPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.lock,
                     size: 100,
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 50,
                   ),
-                  Text("Welcome Back!",
-                      style: TextStyle(color: Colors.grey[700])),
-                  SizedBox(
+                  const Text("Welcome Back!",
+                      style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20)),
+                  const SizedBox(
                     height: 25,
                   ),
                   BuildTextField(
-                      controller: emailControler,
+                      controller: emailController,
                       hint: "Email",
                       obscureText: false),
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
                   BuildTextField(
-                      controller: passControler,
+                      controller: passController,
                       hint: "Password",
                       obscureText: true),
-                  SizedBox(
+                  const SizedBox(
                     height: 20,
                   ),
                   BuildButton(onTap: logIn, text: "Log In"),
-                  SizedBox(
+                  const SizedBox(
                     height: 20,
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Don't have account? ",
+                        "Don't have an account? ",
                         style: TextStyle(color: Colors.grey[700]),
                       ),
-                      SizedBox(
+                      const SizedBox(
                         width: 4,
                       ),
                       GestureDetector(
                         onTap: widget.onTap,
-                        child: Text(
+                        child: const Text(
                           "Sign Up",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,

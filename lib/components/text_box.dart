@@ -17,8 +17,8 @@ class BuildTextBox extends StatelessWidget {
         color: Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(8),
       ),
-      padding: EdgeInsets.only(left: 15, bottom: 15),
-      margin: EdgeInsets.only(left: 20, right: 20, top: 20),
+      padding: const EdgeInsets.only(left: 10, bottom: 10),
+      margin: const EdgeInsets.all(5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -27,7 +27,8 @@ class BuildTextBox extends StatelessWidget {
             children: [
               Text(
                 sectionName,
-                style: TextStyle(color: Colors.grey[500]),
+                style: TextStyle(
+                    color: Colors.grey[500], fontWeight: FontWeight.w500),
               ),
               IconButton(
                   onPressed: onPressed,

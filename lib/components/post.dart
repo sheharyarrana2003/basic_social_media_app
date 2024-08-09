@@ -17,6 +17,7 @@ class Post extends StatefulWidget {
   final String time;
   final String userEmail;
   final String imgUri;
+  final String postImage;
   const Post(
       {super.key,
       required this.message,
@@ -27,7 +28,8 @@ class Post extends StatefulWidget {
       required bool isFollowing,
       required Future<Null> Function() onFollowToggle,
       required this.userEmail,
-      required this.imgUri});
+      required this.imgUri,
+      required this.postImage});
 
   @override
   State<Post> createState() => _PostState();
@@ -38,8 +40,7 @@ class _PostState extends State<Post> {
   final userCollections = FirebaseFirestore.instance.collection("Users");
   int totalComments = 0;
   bool isLiked = false;
-  bool isFollowing =
-      false; // Track if the current user is following the post's user
+  bool isFollowing = false;
   final _commentController = TextEditingController();
   String userName = "";
 
@@ -47,7 +48,6 @@ class _PostState extends State<Post> {
   void initState() {
     super.initState();
     isLiked = widget.likes.contains(currentUser.email);
-    // Listen for changes in the comments collection to update totalComments
     FirebaseFirestore.instance
         .collection("User Posts")
         .doc(widget.postId)
@@ -58,7 +58,7 @@ class _PostState extends State<Post> {
         totalComments = snapshot.docs.length;
       });
     });
-    checkFollowingStatus(); // Check if the current user is following the post's user
+    checkFollowingStatus();
   }
 
   void checkFollowingStatus() async {
@@ -76,14 +76,12 @@ class _PostState extends State<Post> {
     final String userToFollow = widget.userEmail;
 
     if (userToFollow != currentUser.email) {
-      // Get the document references for both users
       final DocumentReference userToFollowRef =
           userCollections.doc(userToFollow);
       final DocumentReference currentUserRef =
           userCollections.doc(currentUser.email);
 
       if (isFollowing) {
-        // Unfollow the user
         await userToFollowRef.update({
           "followers": FieldValue.arrayRemove([currentUser.email])
         });
@@ -91,7 +89,6 @@ class _PostState extends State<Post> {
           "following": FieldValue.arrayRemove([userToFollow])
         });
       } else {
-        // Follow the user
         await userToFollowRef.update({
           "followers": FieldValue.arrayUnion([currentUser.email])
         });
@@ -116,11 +113,13 @@ class _PostState extends State<Post> {
       postRef.update({
         'Likes': FieldValue.arrayUnion([currentUser.email])
       });
-    } else {
+    }
+    else {
       postRef.update({
         'Likes': FieldValue.arrayRemove([currentUser.email])
       });
     }
+
   }
 
   void addComment(String commentText) {
@@ -131,11 +130,10 @@ class _PostState extends State<Post> {
           .collection("Comments")
           .add({
         "CommentText": commentText,
-        "CommentBy": widget.user,
+        "CommentBy": userName,
         "CommentTime": Timestamp.now(),
-      }).then((_) {
-        _commentController.clear();
       });
+      _commentController.clear();
     }
   }
 
@@ -148,19 +146,20 @@ class _PostState extends State<Post> {
           child: Padding(
             padding: MediaQuery.of(context).viewInsets,
             child: Container(
-              padding: EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: _commentController,
-                    decoration: InputDecoration(hintText: "Write a comment.. "),
+                    decoration:
+                        const InputDecoration(hintText: "Write a comment.. "),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   BuildButton(
                       onTap: () => addComment(_commentController.text),
                       text: "Comment"),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection("User Posts")
@@ -170,13 +169,13 @@ class _PostState extends State<Post> {
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
-                        return Center(
+                        return const Center(
                           child: CircularProgressIndicator(),
                         );
                       }
                       return ListView(
                         shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
+                        physics: const NeverScrollableScrollPhysics(),
                         children: snapshot.data!.docs.map((doc) {
                           final commentData =
                               doc.data() as Map<String, dynamic>;
@@ -201,14 +200,14 @@ class _PostState extends State<Post> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Confirmation"),
-        content: Text("Are you sure to delete post? "),
+        title: const Text("Confirmation"),
+        content: const Text("Are you sure to delete post? "),
         actions: [
           TextButton(
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: Text("Cancel")),
+              child: const Text("Cancel")),
           TextButton(
               onPressed: () async {
                 final commentDocs = await FirebaseFirestore.instance
@@ -233,7 +232,7 @@ class _PostState extends State<Post> {
                         (error) => print("Failed to delete post: $error"));
                 Navigator.pop(context);
               },
-              child: Text("Delete")),
+              child: const Text("Delete")),
         ],
       ),
     );
@@ -246,8 +245,8 @@ class _PostState extends State<Post> {
         color: Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(8),
       ),
-      margin: EdgeInsets.only(left: 20, right: 20, top: 20),
-      padding: EdgeInsets.all(15),
+      margin: const EdgeInsets.only(left: 20, right: 20, top: 20),
+      padding: const EdgeInsets.all(15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -260,12 +259,12 @@ class _PostState extends State<Post> {
                     backgroundImage: NetworkImage(widget.imgUri),
                     radius: 20,
                   ),
-                  SizedBox(
+                  const SizedBox(
                     width: 10,
                   ),
                   Text(
                     widget.user,
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -278,23 +277,26 @@ class _PostState extends State<Post> {
                 DeleteButton(onTap: deletePost),
             ],
           ),
-          SizedBox(
+          const SizedBox(
             height: 10,
           ),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8.0),
-            child: Image.asset(
-              'lib/Images/pic.jpg',
-              width: double.infinity,
-              height: 300,
-              fit: BoxFit.cover,
+          if (widget.postImage != "")
+            Container(
+              width: 350,
+              height: 350,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                image: DecorationImage(
+                  image: NetworkImage(widget.postImage),
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
-          ),
-          SizedBox(
+          const SizedBox(
             height: 10,
           ),
           Text(widget.message),
-          SizedBox(
+          const SizedBox(
             height: 10,
           ),
           Row(
@@ -306,27 +308,27 @@ class _PostState extends State<Post> {
                   Column(
                     children: [
                       LikeButton(isLiked: isLiked, onTap: toggleLike),
-                      SizedBox(
+                      const SizedBox(
                         height: 5,
                       ),
                       Text(
                         widget.likes.length.toString(),
-                        style: TextStyle(color: Colors.grey),
+                        style: const TextStyle(color: Colors.grey),
                       ),
                     ],
                   ),
-                  SizedBox(
+                  const SizedBox(
                     width: 10,
                   ),
                   Column(
                     children: [
                       CommentButton(onTap: showCommentSheet),
-                      SizedBox(
+                      const SizedBox(
                         height: 5,
                       ),
                       Text(
                         totalComments.toString(),
-                        style: TextStyle(color: Colors.grey),
+                        style: const TextStyle(color: Colors.grey),
                       ),
                     ],
                   ),
@@ -334,7 +336,7 @@ class _PostState extends State<Post> {
               ),
               Text(
                 widget.time,
-                style: TextStyle(fontSize: 12),
+                style: const TextStyle(fontSize: 12),
               )
             ],
           ),

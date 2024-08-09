@@ -20,12 +20,12 @@ class _SignUpState extends State<SignUp> {
   final confirmPassControler = TextEditingController();
 
   void signUp() async {
-    showDialog(
-      context: context,
-      builder: (context) => Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
+    if (emailControler.text.trim().isEmpty &&
+        passControler.text.trim().isEmpty) {
+      Navigator.pop(context);
+      showMessage("Email and Password cannot be empty");
+      return;
+    }
 
     if (passControler.text.trim() != confirmPassControler.text.trim()) {
       Navigator.pop(context);
@@ -38,7 +38,6 @@ class _SignUpState extends State<SignUp> {
           .createUserWithEmailAndPassword(
               email: emailControler.text.trim(),
               password: passControler.text.trim());
-
       await FirebaseFirestore.instance
           .collection("Users")
           .doc(userCredential.user!.email)
@@ -52,13 +51,12 @@ class _SignUpState extends State<SignUp> {
       });
 
       if (context.mounted) {
-        Navigator.pop(context); // Dismiss the progress indicator
+        Navigator.pop(context);
 
-        // Navigate to the ProfilePage and remove all previous routes
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => ProfilePage()),
-          (route) => false, // Removes all routes
+          MaterialPageRoute(builder: (context) => const ProfilePage()),
+          (route) => false,
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -67,11 +65,30 @@ class _SignUpState extends State<SignUp> {
     }
   }
 
-  void showMessage(String message) async {
+  void showMessage(String message) {
     showDialog(
         context: context,
         builder: (context) => AlertDialog(
-              title: Text(message),
+              title: const Text(
+                "Error",
+                style: TextStyle(color: Colors.red),
+              ),
+              content: Text(
+                message,
+                style: const TextStyle(color: Colors.red),
+              ),
+              backgroundColor: Colors.grey[100],
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    "OK",
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
             ));
   }
 
@@ -87,48 +104,48 @@ class _SignUpState extends State<SignUp> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.lock,
                     size: 100,
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 50,
                   ),
                   Text("Create Account",
                       style: TextStyle(color: Colors.grey[700])),
-                  SizedBox(
+                  const SizedBox(
                     height: 25,
                   ),
                   BuildTextField(
                       controller: userNameControler,
                       hint: "User Name",
                       obscureText: false),
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
                   BuildTextField(
                       controller: emailControler,
                       hint: "Email",
                       obscureText: false),
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
                   BuildTextField(
                       controller: passControler,
                       hint: "Password",
                       obscureText: true),
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
                   BuildTextField(
                       controller: confirmPassControler,
                       hint: "Confirm Password",
                       obscureText: true),
-                  SizedBox(
+                  const SizedBox(
                     height: 20,
                   ),
                   BuildButton(onTap: signUp, text: "Sign Up"),
-                  SizedBox(
+                  const SizedBox(
                     height: 20,
                   ),
                   Row(
@@ -138,12 +155,12 @@ class _SignUpState extends State<SignUp> {
                         "Already have account?",
                         style: TextStyle(color: Colors.grey[700]),
                       ),
-                      SizedBox(
+                      const SizedBox(
                         width: 4,
                       ),
                       GestureDetector(
                         onTap: widget.onTap,
-                        child: Text(
+                        child: const Text(
                           "Log In",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,

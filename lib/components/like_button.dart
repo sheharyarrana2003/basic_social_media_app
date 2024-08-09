@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// ignore: must_be_immutable
 class LikeButton extends StatelessWidget {
   final bool isLiked;
   void Function()? onTap;

@@ -2,7 +2,7 @@ import 'package:basic_social_media_app/components/post.dart';
 import 'package:basic_social_media_app/components/text_field.dart';
 import 'package:basic_social_media_app/helper/helper_methods.dart';
 import 'package:basic_social_media_app/helper/theme_changer.dart';
-import 'package:basic_social_media_app/pages/NotificationPage.dart';
+import 'package:basic_social_media_app/pages/add_post.dart';
 import 'package:basic_social_media_app/pages/profile_page.dart';
 import 'package:basic_social_media_app/pages/search_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -12,7 +12,7 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
-  HomePage({super.key});
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -22,17 +22,10 @@ class _HomePageState extends State<HomePage> {
   final userCollections = FirebaseFirestore.instance.collection("Users");
   final currentUser = FirebaseAuth.instance.currentUser!;
   int _selectedIndex = 0;
-  String userName = "";
   final textController = TextEditingController();
-  final List<String> _pageTitles = [
-    'Home',
-    'Search',
-    'Post',
-    'Feeds',
-    'Profile'
-  ];
+  final List<String> _pageTitles = ['Home', 'Search', 'Post', 'Profile'];
 
-  void postMessage() async {
+  Future<void> postMessage() async {
     if (textController.text.trim().isNotEmpty) {
       DocumentSnapshot userDoc =
           await userCollections.doc(currentUser.email).get();
@@ -45,7 +38,10 @@ class _HomePageState extends State<HomePage> {
         'Likes': [],
         'username': username,
         'image': imageUri,
+        'postImage': "",
       });
+    } else {
+      return null;
     }
     setState(() {
       textController.clear();
@@ -82,14 +78,15 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
         child: GNav(
           gap: 8,
-          tabBackgroundColor: Colors.grey,
-          padding: EdgeInsets.all(16),
+          tabBackgroundColor: Colors.grey.shade100,
+          activeColor: Colors.blue,
+          padding: const EdgeInsets.all(16),
           onTabChange: (index) {
             setState(() {
               _selectedIndex = index;
             });
           },
-          tabs: [
+          tabs: const [
             GButton(
               icon: Icons.home,
               text: "Home",
@@ -102,10 +99,6 @@ class _HomePageState extends State<HomePage> {
               icon: Icons.add,
               text: "Post",
             ),
-            GButton(
-              icon: Icons.notifications,
-              text: "Feeds",
-            ),
             GButton(icon: Icons.person, text: "Profile"),
           ],
         ),
@@ -114,6 +107,8 @@ class _HomePageState extends State<HomePage> {
         title: Center(
           child: Text(
             _pageTitles[_selectedIndex],
+            style: const TextStyle(
+                color: Colors.blue, fontWeight: FontWeight.bold),
           ),
         ),
         actions: [
@@ -136,15 +131,23 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          buildHomePage(),
-          SearchPage(), // Your SearchPage widget
-          Notificationpage(), // Your PostPage widget
-          Notificationpage(), // Your NotificationsPage widget
-          ProfilePage(), // Your ProfilePage widget
-        ],
+      body: FutureBuilder(
+        future: Future.delayed(const Duration(seconds: 2)),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else {
+            return IndexedStack(
+              index: _selectedIndex,
+              children: [
+                buildHomePage(),
+                SearchPage(),
+                const AddPost(),
+                const ProfilePage(),
+              ],
+            );
+          }
+        },
       ),
     );
   }
@@ -154,7 +157,7 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         children: [
           Padding(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             child: Row(
               children: [
                 Expanded(
@@ -166,7 +169,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 IconButton(
                   onPressed: postMessage,
-                  icon: Icon(Icons.arrow_circle_up),
+                  icon: const Icon(Icons.arrow_circle_up),
                 ),
               ],
             ),
@@ -175,8 +178,7 @@ class _HomePageState extends State<HomePage> {
             child: StreamBuilder(
               stream: FirebaseFirestore.instance
                   .collection("User Posts")
-                  .orderBy("TimeStamp",
-                      descending: true) // Show latest posts first
+                  .orderBy("TimeStamp", descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
@@ -188,12 +190,8 @@ class _HomePageState extends State<HomePage> {
                             userSnapshot.data!["following"] ?? []);
                         final followers = List<String>.from(
                             userSnapshot.data!["followers"] ?? []);
-
-                        // Determine whether to show only own posts or include followed posts
                         final showOwnPostsOnly =
                             following.isEmpty && followers.isEmpty;
-
-                        // Filter posts
                         final posts = snapshot.data!.docs.where((post) {
                           final isFollowingUser =
                               following.contains(post["UserEmail"]);
@@ -216,7 +214,7 @@ class _HomePageState extends State<HomePage> {
                               builder: (context, isFollowingSnapshot) {
                                 if (isFollowingSnapshot.connectionState ==
                                     ConnectionState.waiting) {
-                                  return Center();
+                                  return const Center();
                                 } else if (isFollowingSnapshot.hasError) {
                                   return Center(
                                     child: Text(
@@ -224,6 +222,7 @@ class _HomePageState extends State<HomePage> {
                                   );
                                 } else if (isFollowingSnapshot.hasData) {
                                   final isFollowing = isFollowingSnapshot.data!;
+
                                   return Post(
                                     message: post["Message"],
                                     user: post["username"],
@@ -233,14 +232,15 @@ class _HomePageState extends State<HomePage> {
                                     time: formatDate(post["TimeStamp"]),
                                     onFollowToggle: () async {
                                       await toggleFollow(post["UserEmail"]);
-                                      setState(() {}); // Refresh the list
+                                      setState(() {});
                                     },
                                     isFollowing: isFollowing,
                                     userEmail: post["UserEmail"],
                                     imgUri: post["image"],
+                                    postImage: post["postImage"],
                                   );
                                 }
-                                return Container(); // Return empty container if no data
+                                return Container();
                               },
                             );
                           },
@@ -250,7 +250,7 @@ class _HomePageState extends State<HomePage> {
                           child: Text("Error: ${userSnapshot.error}"),
                         );
                       }
-                      return Center();
+                      return const Center();
                     },
                   );
                 } else if (snapshot.hasError) {
@@ -258,13 +258,13 @@ class _HomePageState extends State<HomePage> {
                     child: Text("Error: ${snapshot.error}"),
                   );
                 }
-                return Center(
+                return const Center(
                   child: CircularProgressIndicator(),
                 );
               },
             ),
           ),
-          SizedBox(
+          const SizedBox(
             height: 10,
           ),
         ],

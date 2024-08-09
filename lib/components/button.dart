@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class BuildButton extends StatelessWidget {
-  final VoidCallback? onTap; // Changed to VoidCallback for better readability
+  final VoidCallback? onTap;
   final String text;
 
   const BuildButton({
@@ -15,8 +15,7 @@ class BuildButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(
-            vertical: 15, horizontal: 25), // Adjusted padding
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 25),
         decoration: BoxDecoration(
           color: Colors.grey,
           borderRadius: BorderRadius.circular(8),
@@ -24,7 +23,7 @@ class BuildButton extends StatelessWidget {
         child: Center(
           child: Text(
             text,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: 16,

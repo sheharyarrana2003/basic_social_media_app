@@ -20,9 +20,11 @@ class _ProfilePageState extends State<ProfilePage> {
   final currentUser = FirebaseAuth.instance.currentUser!;
   File? file;
   final ImagePicker imagePicker = ImagePicker();
-  bool isFollowing = false;
+  int followers = 0;
+  int followings = 0;
 
   List<String> followingList = [];
+  Map<String, bool> followingStatus = {};
 
   @override
   void initState() {
@@ -33,14 +35,13 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> fetchFollowingList() async {
     DocumentSnapshot currentUserDoc =
         await userCollections.doc(currentUser.email).get();
+    List<String> fetchedFollowingList =
+        List<String>.from(currentUserDoc['following'] ?? []);
     setState(() {
-      followingList = List<String>.from(currentUserDoc['following'] ?? []);
-    });
-  }
-
-  void checkFollowingStatus(String user) {
-    setState(() {
-      isFollowing = followingList.contains(user);
+      followingList = fetchedFollowingList;
+      followings = followingList.length;
+      followers = List<String>.from(currentUserDoc['followers'] ?? []).length;
+      followingStatus = {for (var email in followingList) email: true};
     });
   }
 
@@ -48,33 +49,36 @@ class _ProfilePageState extends State<ProfilePage> {
     final String userToFollow = user;
 
     if (userToFollow != currentUser.email) {
-      // Get the document references for both users
       final DocumentReference userToFollowRef =
           userCollections.doc(userToFollow);
       final DocumentReference currentUserRef =
           userCollections.doc(currentUser.email);
 
-      if (isFollowing) {
-        // Unfollow the user
+      if (followingStatus[userToFollow] == true) {
         await userToFollowRef.update({
           "followers": FieldValue.arrayRemove([currentUser.email])
         });
         await currentUserRef.update({
           "following": FieldValue.arrayRemove([userToFollow])
         });
+
+        setState(() {
+          followingStatus[userToFollow] = false;
+          followings--;
+        });
       } else {
-        // Follow the user
         await userToFollowRef.update({
           "followers": FieldValue.arrayUnion([currentUser.email])
         });
         await currentUserRef.update({
           "following": FieldValue.arrayUnion([userToFollow])
         });
-      }
 
-      setState(() {
-        isFollowing = !isFollowing;
-      });
+        setState(() {
+          followingStatus[userToFollow] = true;
+          followings++;
+        });
+      }
     }
   }
 
@@ -86,14 +90,14 @@ class _ProfilePageState extends State<ProfilePage> {
         backgroundColor: Colors.grey[900],
         title: Text(
           "Edit $field",
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
         content: TextField(
           autofocus: true,
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: "Enter new $field",
-            hintStyle: TextStyle(color: Colors.grey),
+            hintStyle: const TextStyle(color: Colors.grey),
           ),
           onChanged: (value) {
             newValue = value;
@@ -102,14 +106,14 @@ class _ProfilePageState extends State<ProfilePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
+            child: const Text(
               "Cancel",
               style: TextStyle(color: Colors.white),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(newValue),
-            child: Text(
+            child: const Text(
               "Save",
               style: TextStyle(color: Colors.white),
             ),
@@ -124,15 +128,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void signOut() async {
-    try {
-      await FirebaseAuth.instance.signOut();
-      Navigator.of(context).pushReplacementNamed(
-          '/login'); // Redirect to login page after sign out
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error signing out: $e")),
-      );
-    }
+    await FirebaseAuth.instance.signOut();
   }
 
   Future<void> _selectedImage() async {
@@ -143,30 +139,23 @@ class _ProfilePageState extends State<ProfilePage> {
       if (pickedFile != null) {
         final File imageFile = File(pickedFile.path);
 
-        // Resize image
         final img.Image? image = img.decodeImage(imageFile.readAsBytesSync());
         if (image != null) {
-          img.Image resizedImage =
-              img.copyResize(image, width: 400); // Resize to 400px width
+          img.Image resizedImage = img.copyResize(image, width: 400);
           final resizedFile = File(pickedFile.path)
             ..writeAsBytesSync(img.encodeJpg(resizedImage));
 
-          // Upload image
           final storageRef = FirebaseStorage.instance
               .ref()
               .child("user_profiles")
               .child("${currentUser.uid}.jpg");
           final uploadTask = storageRef.putFile(resizedFile);
-          uploadTask.snapshotEvents.listen((event) {
-            // Optional: Show upload progress
-          });
           final snapshot = await uploadTask;
           final downloadURL = await snapshot.ref.getDownloadURL();
 
-          // Update Firestore with new image URL
           await userCollections
               .doc(currentUser.email)
-              .update({"image": downloadURL}); // Ensure key matches
+              .update({"image": downloadURL});
 
           setState(() {
             file = resizedFile;
@@ -188,16 +177,13 @@ class _ProfilePageState extends State<ProfilePage> {
         stream: userCollections.doc(currentUser.email).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.hasData) {
             final userData = snapshot.data!.data() as Map<String, dynamic>;
-
             return ListView(
               padding: const EdgeInsets.all(16.0),
               children: [
-                SizedBox(height: 50),
                 Center(
                   child: Stack(
                     children: [
@@ -205,94 +191,146 @@ class _ProfilePageState extends State<ProfilePage> {
                         radius: 70,
                         backgroundImage: file != null
                             ? FileImage(file!)
-                            : NetworkImage(userData["image"] ??
-                                    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSb51ZwKCKqU4ZrB9cfaUNclbeRiC-V-KZsfQ&s")
-                                as ImageProvider,
+                            : NetworkImage(userData["image"]) as ImageProvider,
                       ),
                       Positioned(
                         bottom: -10,
                         right: 10,
                         child: IconButton(
                           onPressed: _selectedImage,
-                          icon: Icon(Icons.add_a_photo),
+                          icon: const Icon(Icons.add_a_photo),
                           color: Colors.white,
                         ),
                       ),
                     ],
                   ),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 10),
                 Text(
                   currentUser.email!,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey[700]),
                 ),
-                SizedBox(height: 30),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Text(
-                    "My Details",
-                    style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                  ),
+                const SizedBox(height: 15),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      child: Column(
+                        children: [
+                          Text(
+                            followers.toString(),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            "Followers",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Container(
+                      child: Column(
+                        children: [
+                          Text(
+                            followings.toString(),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            "Followings",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    )
+                  ],
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 15),
+                const Text(
+                  "My Details",
+                  style: TextStyle(
+                      color: Colors.blue,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 5),
                 BuildTextBox(
                   text: userData["username"],
                   sectionName: "username",
                   onPressed: () => editField("username"),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 5),
                 BuildTextBox(
                   text: userData["bio"],
                   sectionName: "bio",
                   onPressed: () => editField("bio"),
                 ),
-                SizedBox(height: 30),
-                Padding(
+                const SizedBox(height: 10),
+                const Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: Text(
-                    followingList.isEmpty ? "Suggestions" : "",
-                    style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                    "Suggestions",
+                    style: TextStyle(
+                        color: Colors.blue,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600),
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Container(
-                  height: 200, // Adjust height as needed
+                  height: 200,
                   child: StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection("Users")
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       if (snapshot.hasData) {
                         final users = snapshot.data!.docs;
+                        final filteredUsers = users.where((userDoc) {
+                          final user = userDoc.data() as Map<String, dynamic>;
+                          final userEmail = user["email"];
+                          return userEmail != currentUser.email &&
+                              !followingList.contains(userEmail);
+                        }).toList();
+
+                        if (filteredUsers.isEmpty) {
+                          return const Center(
+                            child: Text(
+                              "No suggestions available",
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          );
+                        }
 
                         return ListView.builder(
                           scrollDirection: Axis.horizontal,
-                          itemCount: users.length,
+                          itemCount: filteredUsers.length,
                           itemBuilder: (context, index) {
-                            final user =
-                                users[index].data() as Map<String, dynamic>;
+                            final user = filteredUsers[index].data()
+                                as Map<String, dynamic>;
                             final userEmail = user["email"];
 
-                            // Filter out the current user and users that are already followed
-                            if (userEmail != currentUser.email &&
-                                !followingList.contains(userEmail)) {
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8.0),
-                                child: FollowPeople(
-                                  onTap: () => toggleFollow(userEmail),
-                                  user: user["username"] ?? "unknown",
-                                  imageUrl: user["image"],
-                                  isFollowing: isFollowing,
-                                ),
-                              );
-                            } else {
-                              return SizedBox.shrink();
-                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: FollowPeople(
+                                onTap: () => toggleFollow(userEmail),
+                                user: user["username"] ?? "unknown",
+                                imageUrl: user["image"],
+                                isFollowing:
+                                    followingStatus[userEmail] ?? false,
+                              ),
+                            );
                           },
                         );
                       } else if (snapshot.hasError) {
@@ -300,41 +338,43 @@ class _ProfilePageState extends State<ProfilePage> {
                           child: Text("Error: ${snapshot.error}"),
                         );
                       }
-                      return Center(
+                      return const Center(
                         child: CircularProgressIndicator(),
                       );
                     },
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Center(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 15.0, horizontal: 30.0),
+                    child: GestureDetector(
+                  onTap: signOut,
+                  child: Container(
+                    width: 120,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(11),
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                    onPressed: signOut,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           "Log Out",
                           style: TextStyle(
-                              color: Colors.black, fontWeight: FontWeight.bold),
+                              color: Colors.blue, fontWeight: FontWeight.bold),
                         ),
-                        SizedBox(width: 10),
+                        SizedBox(
+                          width: 10,
+                        ),
                         Icon(
                           Icons.logout,
-                          color: Colors.black,
-                        ),
+                          color: Colors.blue,
+                        )
                       ],
                     ),
                   ),
-                ),
-                SizedBox(height: 30),
+                )),
+                const SizedBox(height: 30),
               ],
             );
           } else if (snapshot.hasError) {
@@ -342,7 +382,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Text("Error: ${snapshot.error}"),
             );
           }
-          return Center(
+          return const Center(
             child: CircularProgressIndicator(),
           );
         },

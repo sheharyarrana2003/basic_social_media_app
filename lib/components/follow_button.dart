@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 class FollowButton extends StatelessWidget {
   final void Function()? onTap;
-  final bool
-      isFollowing; // Indicates if the current user is following the post's user
+  final bool isFollowing;
 
   const FollowButton({
     super.key,
@@ -19,10 +18,8 @@ class FollowButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onTap,
         child: Text(
-          isFollowing
-              ? "Unfollow"
-              : "Follow", // Toggle between "Follow" and "Unfollow"
-          style: TextStyle(color: Colors.black, fontSize: 10),
+          isFollowing ? "Unfollow" : "Follow",
+          style: const TextStyle(color: Colors.blue, fontSize: 10),
         ),
       ),
     );

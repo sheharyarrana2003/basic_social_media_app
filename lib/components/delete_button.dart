@@ -8,7 +8,7 @@ class DeleteButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Icon(
+      child: const Icon(
         Icons.delete,
         color: Colors.grey,
       ),

@@ -23,31 +23,29 @@ class FollowPeople extends StatelessWidget {
         child: Column(
           children: [
             CircleAvatar(
-              radius: 35, // Adjust radius as needed
+              radius: 35,
               backgroundImage: file != null
                   ? FileImage(file!)
                   : (imageUrl != null && imageUrl!.isNotEmpty)
                       ? NetworkImage(imageUrl!) as ImageProvider
-                      : NetworkImage(
+                      : const NetworkImage(
                           "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSb51ZwKCKqU4ZrB9cfaUNclbeRiC-V-KZsfQ&s"),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               user,
-              style: TextStyle(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center, // Center the text
+              style: const TextStyle(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Container(
               width: 100,
               height: 30,
               child: OutlinedButton(
                 onPressed: onTap,
                 child: Text(
-                  isFollowing
-                      ? "Unfollow"
-                      : "Follow", // Toggle between "Follow" and "Unfollow"
-                  style: TextStyle(color: Colors.black, fontSize: 10),
+                  isFollowing ? "Unfollow" : "Follow",
+                  style: const TextStyle(color: Colors.blue, fontSize: 10),
                 ),
               ),
             ),

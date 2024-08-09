@@ -10,7 +10,7 @@ class BuildListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(left: 10.0),
+      padding: const EdgeInsets.only(left: 10.0),
       child: ListTile(
         leading: Icon(
           icon,
@@ -19,7 +19,7 @@ class BuildListTile extends StatelessWidget {
         onTap: onTap,
         title: Text(
           text,
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
       ),
     );

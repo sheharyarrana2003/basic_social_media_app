@@ -14,8 +14,8 @@ class Comment extends StatelessWidget {
         color: Theme.of(context).colorScheme.secondary,
         borderRadius: BorderRadius.circular(4),
       ),
-      margin: EdgeInsets.only(bottom: 5),
-      padding: EdgeInsets.all(15),
+      margin: const EdgeInsets.only(bottom: 5),
+      padding: const EdgeInsets.all(15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -33,7 +33,7 @@ class Comment extends StatelessWidget {
             ],
           ),
           Text(text),
-          SizedBox(
+          const SizedBox(
             height: 5,
           ),
         ],

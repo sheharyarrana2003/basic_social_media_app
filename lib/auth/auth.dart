@@ -15,7 +15,7 @@ class Authentication extends StatelessWidget {
           if (snapshot.hasData) {
             return HomePage();
           } else {
-            return SignUpLogIn();
+            return const SignUpLogIn();
           }
         },
       ),
